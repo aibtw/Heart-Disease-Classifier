@@ -11,9 +11,6 @@ def train(n):
 
     :param n: polynomial order, where 1 means linear, 2 means 2nd order.
     """
-    # ----------------- default output files ----------------- #
-    output_file = "Linear_Train_Results.txt"
-    output_thetas = "linear_thetas"
     # ---------------------- Read input ---------------------- #
     x = np.transpose(np.loadtxt("heart_train.csv", delimiter=',', skiprows=1, usecols=range(13)))
     y = np.loadtxt("heart_train.csv", delimiter=',', skiprows=1, usecols=-1)
@@ -36,19 +33,21 @@ def train(n):
     trainX = np.vstack([np.ones(num_of_examples), x])
 
     # Based on input, choose whether to go with linear model (first order), or second order nonlinear model.
+    # ----------------- default output file ----------------- #
+    output_thetas = "linear_thetas"
     if n == 1:  # linear (power 1), do nothing because this is the default
         pass
     elif n == 2:  # power 2
         trainX = np.vstack([trainX, np.square(x)])
-        output_file = "Poly_order2_Train_Results.txt"
         output_thetas = "poly_order2_thetas"
     num_of_features = trainX.shape[0]
 
     # ------------ Thetas random start point ------------ #
+    rnd.seed(100)  # Fixed for comparing different models with different lr
     thetas = rnd.random(num_of_features)
     # ----------------- Learning rate ------------------- #
-    lr = 0.001
-    # ----------------- Initialize loss ----------------- #
+    lr = 0.75
+    # --------------- Initialize variables -------------- #
     loss = list()
     hyp = None
 
@@ -72,9 +71,9 @@ def train(n):
     # --------------------- output area ---------------------- #
     # Console output
     print("loss is: " + str(loss[-1]))
-    # criteria_check(hyp, y)
+    criteria_check(hyp, y, n, output_to_file=False)
 
-    # File output
+    # Save thetas for test phase
     np.save(output_thetas, thetas)  # Save thetas for the test phase.
 
     # Loss Plot
@@ -96,8 +95,8 @@ def test(n):
     x = x / s_factor[:, None]
     (x_m, x_n) = x.shape
 
-    # ---------------------- Linear Test ---------------------- #
-    print("\n\n#==================== Linear Testing ====================#")
+    # ---------------------- Test ---------------------- #
+    print("\n\n#==================== Testing ====================#")
     train_thetas = None
     testX = None
     testY = y
@@ -109,48 +108,75 @@ def test(n):
         testX = np.vstack([np.ones(x_n), x, np.square(x)])
 
     hyp = 1 / (1 + np.exp(-np.dot(train_thetas, testX)))
-    print("Hypothesis Overview:")
-    print(hyp)
     test_loss = -np.sum(np.log(hyp) * testY + np.log(1 - hyp) * (1 - testY)) / x_n
     print("Test Loss is: " + str(test_loss))
-    # ------------------- Test Linear Done ------------------- #
-    criteria_check(hyp, y)
+
+    criteria_check(hyp, y, n, output_to_file=True)
 
 
-def criteria_check(hyp, y):
+def criteria_check(hyp, y, n, output_to_file):
     """
     A function that is called upon the end of training/during test phase, to check the model performance, according to
     some criteria: accuracy, precision, recall, F1-score.
 
-    :param hyp: The hypothesis equation of the trained model, or in other words, this is the predicted output for each
-                input.
-    :param y:   The actual output that corresponds to each input.
-    :return:    None.
+    :param hyp:                 The hypothesis equation of the trained model, or in other words, this is the predicted
+                                output for each input.
+    :param y:                   The actual output that corresponds to each input.
+    :param output_to_file:      boolean. If true, the results will be written to csv file.
+    :return:                    None.
     """
+    # ----------------- initialize variables ----------------- #
     true_pos = 0
     false_pos = 0
     true_neg = 0
     false_neg = 0
+    prediction = list()
+    threshold = 0.5
+    # ----------------- calc positives and negatives ----------------- #
     for i in range(len(hyp)):
-        if hyp[i] > 0.5:
+        if hyp[i] > threshold:
+            prediction.append(1)
             print("The predicted class is: ", 1, ", the actual class is: ", y[i], ",   ", y[i] == 1)
             if y[i] == 1:
                 true_pos += 1
             else:
                 false_pos += 1
         else:
+            prediction.append(0)
             print("The predicted class is: ", 0, ", the actual class is: ", y[i], ",   ", y[i] == 0)
             if y[i] == 0:
                 true_neg += 1
             else:
                 false_neg += 1
+
+    # ----------------- calc and print results ----------------- #
     print("Number of correct guesses is: ", true_pos + true_neg)
     accuracy = (true_pos + true_neg) / len(y) * 100
     precision = true_pos / (true_pos + false_pos) * 100
     recall = true_pos / (true_pos + false_neg) * 100
     f1_score = 2 * recall * precision / (recall + precision)
-
     print("Accuracy: ", accuracy, "\nprecision: ", precision, "\nrecall: ", recall, "\nF1_score: ", f1_score)
+
+    # ----------------- Output to csv file ----------------- #
+    if output_to_file:
+        if n ==1:
+            output_file_name = "Output_Linear.csv"
+        else:
+            output_file_name = "Output_poly_ord2.csv"
+        yEQp = list(y == prediction)
+        y = y.tolist()
+        with open(output_file_name, 'w', newline='') as file:
+            writer = csv.writer(file)
+            y.insert(0, "Truth")
+            prediction.insert(0, "Prediction")
+            yEQp.insert(0, "Correct?")
+            writer.writerows([y, prediction, yEQp])
+            writer.writerows([['--------', '--------', '--------', '--------', '--------'],
+                              ["True pos ", "True neg", "False pos", "False neg"],
+                              [true_pos, true_neg, false_pos, false_neg],
+                              ['--------', '--------', '--------', '--------', '--------'],
+                              ["Accuracy", "precision", "Recall", "F1-score"],
+                              [accuracy, precision, recall, f1_score]])
 
 
 if __name__ == "__main__":
