@@ -4,6 +4,23 @@ from numpy import random as rnd
 from matplotlib import pyplot as plt
 import csv
 
+"""
+    How to run using command line:
+    A- Training:
+    1- python Heart-Disease-Classifier.py T1
+            This commend will train linear model. it will output linear_thetas.npy file which is necessary for testing.
+    2- python Heart-Disease-Classifier.py T2
+            This commend will train 2nd ord model. it will output linear_thetas.npy file which is necessary for testing.
+    
+    B- Testing
+    3- python Heart-Disease-Classifier.py V1
+            This command will test the trained linear model. output will be shown in cmd line + Output_Linear.csv file
+    4- python Heart-Disease-Classifier.py V2
+            This command will test the trained 2nd ord model. output will be shown in cmd line + Output_poly_ord2.csv
+            file
+"""
+
+
 def train(n):
     """
     A function that trains a model to classify provided data into (has heart desease, or doesn't have heart disease)
@@ -43,10 +60,10 @@ def train(n):
     num_of_features = trainX.shape[0]
 
     # ------------ Thetas random start point ------------ #
-    rnd.seed(100)  # Fixed for comparing different models with different lr
+    rnd.seed(10100)   # Can be fixed to try different learning rates and compare results
     thetas = rnd.random(num_of_features)
     # ----------------- Learning rate ------------------- #
-    lr = 0.75
+    lr = 0.25
     # --------------- Initialize variables -------------- #
     loss = list()
     hyp = None
